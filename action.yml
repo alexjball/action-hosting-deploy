@@ -54,6 +54,9 @@ inputs:
       directory"
     default: "."
     required: false
+  artifactName:
+    description: "The name of the artifact uploaded by a previous workflow. If specified, this action must be triggered by a workflow_run event in response to a pull request, where the triggering workflow uploads the specified artifact."
+    required: false
 outputs:
   urls:
     description: The url(s) deployed to

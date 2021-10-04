@@ -36,7 +36,7 @@ import {
   getURLsMarkdownFromChannelDeployResult,
   postChannelSuccessComment,
 } from "./postOrUpdateComment";
-import { resolvePullRequest } from "./resolvePullRequest";
+import { downloadArtifact } from "./downloadArtifact";
 
 // Inputs defined in action.yml
 const expires = getInput("expires");
@@ -50,9 +50,13 @@ const token = process.env.GITHUB_TOKEN || getInput("repoToken");
 const octokit = token ? getOctokit(token) : undefined;
 const entryPoint = getInput("entryPoint");
 const target = getInput("target");
+const artifactName = getInput("artifactName");
+let publicDirOverride: string = null;
 
 async function run() {
-  await resolvePullRequest(context, octokit);
+  if (artifactName) {
+    publicDirOverride = await downloadArtifact(context, octokit, artifactName);
+  }
 
   const isPullRequest = !!context.payload.pull_request;
 
@@ -121,6 +125,7 @@ async function run() {
       expires,
       channelId,
       target,
+      publicDir: publicDirOverride,
     });
 
     if (deployment.status === "error") {
