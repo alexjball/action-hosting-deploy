@@ -36,6 +36,7 @@ import {
   getURLsMarkdownFromChannelDeployResult,
   postChannelSuccessComment,
 } from "./postOrUpdateComment";
+import { resolvePullRequest } from "./resolvePullRequest";
 
 // Inputs defined in action.yml
 const expires = getInput("expires");
@@ -51,6 +52,8 @@ const entryPoint = getInput("entryPoint");
 const target = getInput("target");
 
 async function run() {
+  await resolvePullRequest(context, octokit);
+
   const isPullRequest = !!context.payload.pull_request;
 
   let finish = (details: Object) => console.log(details);
