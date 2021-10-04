@@ -1,0 +1,27 @@
+name: Deploy Pull Request
+
+on:
+  workflow_run:
+    workflows: ["Build Pull Request"]
+    types:
+      - completed
+
+jobs:
+  deploy_pull_request:
+    name: Deploy Pull Request
+    runs-on: ubuntu-latest
+    if: github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: print event
+        run: cat $GITHUB_EVENT_PATH
+      - name: Deploy demo site
+        uses: ./
+        with:
+          repoToken: "${{ secrets.GITHUB_TOKEN }}"
+          firebaseServiceAccount: "${{ secrets.FIREBASE_SERVICE_ACCOUNT }}"
+          projectId: "${{ secrets.FIREBASE_PROJECT_ID }}"
+          entryPoint: ./demo
+          artifactName: demo-site

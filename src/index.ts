@@ -22,7 +22,7 @@ import {
   startGroup,
 } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
-import { existsSync } from "fs";
+import { existsSync, rmdirSync } from "fs";
 import { createCheck } from "./createCheck";
 import { createGacFile } from "./createGACFile";
 import {
@@ -36,6 +36,9 @@ import {
   getURLsMarkdownFromChannelDeployResult,
   postChannelSuccessComment,
 } from "./postOrUpdateComment";
+import resolvePullRequest from "./resolvePullRequest";
+import { resolve } from "path";
+import downloadArtifact from "./downloadArtifact";
 
 // Inputs defined in action.yml
 const expires = getInput("expires");
@@ -49,16 +52,18 @@ const token = process.env.GITHUB_TOKEN || getInput("repoToken");
 const octokit = token ? getOctokit(token) : undefined;
 const entryPoint = getInput("entryPoint");
 const target = getInput("target");
+const artifactName = getInput("artifactName");
+const workflowRunId = getInput("workflowRunId");
 
 async function run() {
-  const isPullRequest = !!context.payload.pull_request;
-
   let finish = (details: Object) => console.log(details);
-  if (token && isPullRequest) {
-    finish = await createCheck(octokit, context);
-  }
-
   try {
+    const isPullRequest = await resolvePullRequest(context, octokit);
+
+    if (token && isPullRequest) {
+      finish = await createCheck(octokit, context);
+    }
+
     startGroup("Verifying firebase.json exists");
 
     if (entryPoint !== ".") {
@@ -85,6 +90,33 @@ async function run() {
       "Created a temporary file with Application Default Credentials."
     );
     endGroup();
+
+    if (artifactName) {
+      startGroup("Downloading deployment files from artifact");
+
+      const bundleDestination = require(resolve("./firebase.json"))?.hosting
+        ?.public;
+
+      if (!bundleDestination)
+        throw Error("No hosting.public key specified in firebase.json");
+
+      rmdirSync(bundleDestination, { recursive: true });
+
+      const runId = workflowRunId
+        ? parseInt(workflowRunId)
+        : context.payload.workflow_run?.id ?? context.runId;
+
+      await downloadArtifact({
+        api: octokit,
+        artifactName,
+        path: bundleDestination,
+        workflowRunId: runId,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+      });
+
+      endGroup();
+    }
 
     if (isProductionDeploy) {
       startGroup("Deploying to production site");
@@ -137,7 +169,9 @@ async function run() {
         : urls.map((url) => `- [${url}](${url})`).join("\n");
 
     if (token && isPullRequest && !!octokit) {
-      const commitId = context.payload.pull_request?.head.sha.substring(0, 7);
+      const commitId = `${
+        context.payload.pull_request?.head?.repo?.full_name
+      }@${context.payload.pull_request?.head.sha.substring(0, 7)}`;
 
       await postChannelSuccessComment(octokit, context, deployment, commitId);
     }

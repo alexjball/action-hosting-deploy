@@ -1,3 +1,6 @@
 {
-  "declaration": false
+  "declaration": false,
+  "compilerOptions": {
+    "target": "ES5"
+  }
 }
