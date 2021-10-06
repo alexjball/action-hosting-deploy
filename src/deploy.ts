@@ -45,12 +45,13 @@ export type DeployConfig = {
   expires: string;
   channelId: string;
   target?: string;
-  publicDir?: string;
+  publicFolder?: string;
 };
 
 export type ProductionDeployConfig = {
   projectId: string;
   target?: string;
+  publicFolder?: string;
 };
 
 export function interpretChannelDeployResult(
@@ -121,7 +122,7 @@ export async function deployPreview(
   gacFilename: string,
   deployConfig: DeployConfig
 ) {
-  const { projectId, channelId, target, expires, publicDir } = deployConfig;
+  const { projectId, channelId, target, expires, publicFolder } = deployConfig;
 
   const deploymentText = await execWithCredentials(
     [
@@ -129,7 +130,7 @@ export async function deployPreview(
       channelId,
       ...(target ? ["--only", target] : []),
       ...(expires ? ["--expires", expires] : []),
-      ...(publicDir ? ["--public", publicDir] : []),
+      ...(publicFolder ? ["--public", publicFolder] : []),
     ],
     projectId,
     gacFilename
@@ -146,10 +147,15 @@ export async function deployProductionSite(
   gacFilename,
   productionDeployConfig: ProductionDeployConfig
 ) {
-  const { projectId, target } = productionDeployConfig;
+  const { projectId, target, publicFolder } = productionDeployConfig;
 
   const deploymentText = await execWithCredentials(
-    ["deploy", "--only", `hosting${target ? ":" + target : ""}`],
+    [
+      "deploy",
+      "--only",
+      `hosting${target ? ":" + target : ""}`,
+      ...(publicFolder ? ["--public", publicFolder] : []),
+    ],
     projectId,
     gacFilename
   );

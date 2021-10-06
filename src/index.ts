@@ -36,7 +36,8 @@ import {
   getURLsMarkdownFromChannelDeployResult,
   postChannelSuccessComment,
 } from "./postOrUpdateComment";
-import { downloadArtifact } from "./downloadArtifact";
+import { resolvePullRequest } from "./resolvePullRequest";
+import { resolve } from "path";
 
 // Inputs defined in action.yml
 const expires = getInput("expires");
@@ -50,15 +51,12 @@ const token = process.env.GITHUB_TOKEN || getInput("repoToken");
 const octokit = token ? getOctokit(token) : undefined;
 const entryPoint = getInput("entryPoint");
 const target = getInput("target");
-const artifactName = getInput("artifactName");
-let publicDirOverride: string = null;
+const publicFolder = getInput("publicFolder")
+  ? resolve(getInput("publicFolder"))
+  : undefined;
 
 async function run() {
-  if (artifactName) {
-    publicDirOverride = await downloadArtifact(context, octokit, artifactName);
-  }
-
-  const isPullRequest = !!context.payload.pull_request;
+  const isPullRequest = await resolvePullRequest(context, octokit);
 
   let finish = (details: Object) => console.log(details);
   if (token && isPullRequest) {
@@ -98,6 +96,7 @@ async function run() {
       const deployment = await deployProductionSite(gacFilename, {
         projectId,
         target,
+        publicFolder,
       });
       if (deployment.status === "error") {
         throw Error((deployment as ErrorResult).error);
@@ -125,7 +124,7 @@ async function run() {
       expires,
       channelId,
       target,
-      publicDir: publicDirOverride,
+      publicFolder,
     });
 
     if (deployment.status === "error") {
@@ -145,7 +144,9 @@ async function run() {
         : urls.map((url) => `- [${url}](${url})`).join("\n");
 
     if (token && isPullRequest && !!octokit) {
-      const commitId = context.payload.pull_request?.head.sha.substring(0, 7);
+      const commitId = `${
+        context.payload.pull_request?.head?.repo?.full_name
+      }@${context.payload.pull_request?.head.sha.substring(0, 7)}`;
 
       await postChannelSuccessComment(octokit, context, deployment, commitId);
     }
