@@ -8,10 +8,11 @@ type Api = InstanceType<typeof GitHub>;
  * references a pull request.
  */
 export async function resolvePullRequest(context: Context, api: Api) {
-  const pullRequestNumber = context.payload.pull_requests?.[0]?.number;
+  const pullRequestNumber =
+    context.payload.workflow_run?.pull_requests?.[0]?.number;
   if (
     context.eventName === "workflow_run" &&
-    context.payload.event === "pull_request" &&
+    context.payload.workflow_run?.event === "pull_request" &&
     pullRequestNumber
   ) {
     const { repo, owner } = context.repo;
