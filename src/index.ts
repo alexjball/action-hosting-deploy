@@ -22,7 +22,7 @@ import {
   startGroup,
 } from "@actions/core";
 import { context, getOctokit } from "@actions/github";
-import { existsSync } from "fs";
+import { existsSync, rmSync } from "fs";
 import { createCheck } from "./createCheck";
 import { createGacFile } from "./createGACFile";
 import {
@@ -102,8 +102,8 @@ async function run() {
 
       if (!bundleDestination)
         throw Error("No hosting.public key specified in firebase.json");
-      if (existsSync(bundleDestination))
-        throw Error("Existing files found at " + bundleDestination);
+
+      rmSync(bundleDestination, { recursive: true, force: true });
 
       const runId = workflowRunId
         ? parseInt(workflowRunId)

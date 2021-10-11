@@ -4,11 +4,10 @@ import axios from "axios";
 import { createWriteStream } from "fs";
 import { Readable } from "stream";
 import { fileSync } from "tmp";
-import { Context } from "@actions/github/lib/context";
 
 type Api = ReturnType<typeof getOctokit>;
 
-interface DownloadBundleArgs {
+interface DownloadArgs {
   api: Api;
   workflowRunId: number;
   artifactName: string;
@@ -24,7 +23,7 @@ export default async function downloadArtifact({
   path,
   owner,
   repo,
-}: DownloadBundleArgs) {
+}: DownloadArgs) {
   const url = await resolveArchiveDownloadUrl({
     api,
     workflowRunId,
