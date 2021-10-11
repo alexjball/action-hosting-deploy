@@ -97,7 +97,8 @@ async function run() {
     if (artifactName) {
       startGroup("Downloading deployment files from artifact");
 
-      const bundleDestination = require("./firebase.json")?.hosting?.public;
+      const bundleDestination = require(resolve("./firebase.json"))?.hosting
+        ?.public;
 
       if (!bundleDestination)
         throw Error("No hosting.public key specified in firebase.json");
