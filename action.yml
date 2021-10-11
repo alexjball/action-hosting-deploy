@@ -54,8 +54,11 @@ inputs:
       directory"
     default: "."
     required: false
-  publicFolder:
-    description: "The location of your public folder. If set, this overrides the value set in firebase.json."
+  artifactName:
+    description: "The name of the artifact containing deployment files. If specified, this artifact is downloaded and extracted to the public hosting folder."
+    required: false
+  workflowRunId:
+    description: "The workflow run in which to look for the artifact. Does nothing if artifactName is not specified. If not specified when artifactName is, the current workflow will be used, unless it was triggered by a workflow_run, in which case the triggering workflow will be used"
     required: false
 outputs:
   urls:

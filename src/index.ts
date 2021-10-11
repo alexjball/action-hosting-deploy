@@ -38,6 +38,7 @@ import {
 } from "./postOrUpdateComment";
 import { resolvePullRequest } from "./resolvePullRequest";
 import { resolve } from "path";
+import downloadArtifact from "./downloadArtifact";
 
 // Inputs defined in action.yml
 const expires = getInput("expires");
@@ -51,6 +52,8 @@ const token = process.env.GITHUB_TOKEN || getInput("repoToken");
 const octokit = token ? getOctokit(token) : undefined;
 const entryPoint = getInput("entryPoint");
 const target = getInput("target");
+const artifactName = getInput("artifactName");
+const workflowRunId = getInput("workflowRunId");
 const publicFolder = getInput("publicFolder")
   ? resolve(getInput("publicFolder"))
   : undefined;
@@ -90,6 +93,32 @@ async function run() {
       "Created a temporary file with Application Default Credentials."
     );
     endGroup();
+
+    if (artifactName) {
+      startGroup("Downloading deployment files from artifact");
+
+      const bundleDestination = require("./firebase.json")?.hosting?.public;
+
+      if (!bundleDestination)
+        throw Error("No hosting.public key specified in firebase.json");
+      if (existsSync(bundleDestination))
+        throw Error("Existing files found at " + bundleDestination);
+
+      const runId = workflowRunId
+        ? parseInt(workflowRunId)
+        : context.payload.workflow_run?.id ?? context.runId;
+
+      await downloadArtifact({
+        api: octokit,
+        artifactName,
+        path: bundleDestination,
+        workflowRunId: runId,
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+      });
+
+      endGroup();
+    }
 
     if (isProductionDeploy) {
       startGroup("Deploying to production site");
